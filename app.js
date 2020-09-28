@@ -137,7 +137,7 @@ app.get("/search/all/prophets", (req, res) => {
    res.json(mockPredictionData)
 })
 
-app.get("/test123", (req, res) => {
+app.get("/test", (req, res) => {
    var query = "SELECT * FROM test"
    const testPromise = utilities.sqlPromise(query)
    testPromise
