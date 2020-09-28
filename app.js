@@ -2,6 +2,7 @@ const express = require("express")
 const app = express()
 const port = process.env.PORT || 3001
 const utilities = require("./utilities")
+const path = require("path")
 
 //Secrets
 // if (process.env.NODE_ENV !== "production") {
@@ -9,6 +10,12 @@ require("dotenv").config()
 // }
 
 console.clear()
+
+app.use(express.static(path.join(__dirname, "build")))
+
+// app.get("/*", (req, res) => {
+//    res.sendFile(path.join(__dirname, "build", "index.html"))
+// })
 
 //SQL
 const mySqlConnection = require("./SQL-config")
@@ -130,7 +137,7 @@ app.get("/search/all/prophets", (req, res) => {
    res.json(mockPredictionData)
 })
 
-app.get("/test", (req, res) => {
+app.get("/test123", (req, res) => {
    var query = "SELECT * FROM test"
    const testPromise = utilities.sqlPromise(query)
    testPromise
