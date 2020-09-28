@@ -1,0 +1,7 @@
+#!/bin/bash
+rm -r build
+cd ../TheProphets
+npm run build
+mv build ../TheProphets-Server
+cd ../TheProphets-Server
+nodemon app.js

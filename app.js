@@ -147,10 +147,6 @@ app.get("/test123", (req, res) => {
       .catch((err) => console.log(err))
 })
 
-app.get("*", (req, res) => {
-   res.send("Sorry")
-})
-
 app.listen(port, () => {
    console.log(`Server Started at http://localhost:${port}`)
 })
