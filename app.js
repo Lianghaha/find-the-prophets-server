@@ -28,15 +28,17 @@ app.get("/api/search/prophets", (req, res) => {
    let orderBySort = "ORDER BY score DESC"
    let whereScoreAbove = "WHERE score > 0"
    let whereKeyWord = ""
+   let whereProphetID = ""
 
-   const { sort, scoreAbove, keyWord } = req.query
+   const { sort, scoreAbove, keyWord, prophetID } = req.query
 
    //Print queryStrings for Debugging
    let queryString = {}
    queryString.sort = sort
    queryString.scoreAbove = scoreAbove
    queryString.keyWord = keyWord
-   console.table(queryString)
+   queryString.prophetID = prophetID
+   // console.table(queryString)
 
    if (sort) {
       querySort = sort
@@ -47,8 +49,11 @@ app.get("/api/search/prophets", (req, res) => {
    if (keyWord) {
       whereKeyWord = `AND (name LIKE "%${keyWord}%" OR description LIKE "%${keyWord}%")`
    }
+   if (prophetID) {
+      whereProphetID = `AND prophet_id = ${prophetID}`
+   }
 
-   var query = `SELECT * FROM prophets ${whereScoreAbove} ${whereKeyWord} ${orderBySort}`
+   var query = `SELECT * FROM prophets ${whereScoreAbove} ${whereKeyWord} ${whereProphetID} ${orderBySort}`
    console.log("Prophets query: \n" + query)
    utilities
       .sqlPromise(query)
@@ -66,14 +71,19 @@ app.get("/api/search/predictions", (req, res) => {
    let orderBySort = "ORDER BY score DESC"
    let whereScoreAbove = "WHERE score > 0"
    let whereKeyWord = ""
+   let whereProphetID = ""
+   let wherePredictionID = ""
 
-   const { sort, scoreAbove, keyWord } = req.query
+   const { sort, scoreAbove, keyWord, prophetID, predictionID } = req.query
 
    //Print queryStrings for Debugging
    let queryString = {}
    queryString.sort = sort
    queryString.scoreAbove = scoreAbove
    queryString.keyWord = keyWord
+   queryString.prophetID = prophetID
+   queryString.predictionID = predictionID
+
    console.table(queryString)
 
    if (sort) {
@@ -85,8 +95,15 @@ app.get("/api/search/predictions", (req, res) => {
    if (keyWord) {
       whereKeyWord = `AND (title LIKE "%${keyWord}%" OR description LIKE "%${keyWord}%")`
    }
+   if (prophetID) {
+      whereProphetID = `AND prophet_id = ${prophetID}`
+   }
 
-   var query = `SELECT * FROM predictions ${whereScoreAbove} ${whereKeyWord} ${orderBySort}`
+   if (predictionID) {
+      wherePredictionID = `AND prediction_id = ${predictionID}`
+   }
+
+   var query = `SELECT * FROM predictions ${whereScoreAbove} ${whereKeyWord} ${whereProphetID} ${wherePredictionID} ${orderBySort}`
    console.log("Predictions query: \n" + query)
    utilities
       .sqlPromise(query)
