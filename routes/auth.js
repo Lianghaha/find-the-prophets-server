@@ -44,29 +44,49 @@ const postNewToken = async (user_id, email) => {
    const token = generateToken([user_id, email, timeNumeric])
 
    var query = `INSERT INTO tokens (user_id, identity, token, last_request, last_request_readable) VALUES ("${user_id}", "${email}", "${token}", "${timeNumeric}", "${timeReadable}");`
-
    //    console.log(`Post New Token: Query: \n ${query} \n`)
 
-   let postTokenSuccess = false
+   let postTokenStatus = "fail"
+   let tokenResult = "Post New Token Failed"
 
    await utilities
       .sqlPromise(query)
       .then(() => {
-         console.log("Post New Token: Create and Post token sucessful")
-         postTokenSuccess = true
+         postTokenStatus = "success"
+         tokenResult = token
       })
       .catch((err) => {
          console.log(err)
       })
-   if (postTokenSuccess) {
-      console.log("Post New Token: Return Token")
-      return token
-   } else return "Post New Token Failed"
+   return { status: postTokenStatus, result: tokenResult }
 }
 
-const refreshToken = () => {
-    const { timeNumeric, timeReadable } = getCurrentTime()
-    const token = generateToken([user_id, email, timeNumeric])
+const refreshToken = async (user_id, email) => {
+   const { timeNumeric, timeReadable } = getCurrentTime()
+   const token = generateToken([user_id, email, timeNumeric])
+
+   var query = `UPDATE tokens SET token = "${token}", last_request = "${timeNumeric}", last_request_readable = "${timeReadable}" WHERE user_id = ${user_id};`
+   console.log(query)
+
+   //Default tokenRequest info
+   let refreshTokenStatus = "fail"
+   let tokenResult = "Refresh Token Failed"
+
+   await utilities
+      .sqlPromise(query)
+      .then((result) => {
+         if (result.affectedRows) {
+            console.log("Refresh Token Succeed")
+            refreshTokenStatus = "success"
+            tokenResult = token
+         } else {
+            tokenResult += ": 0 row or more than 1 row changed"
+         }
+      })
+      .catch((err) => {
+         console.log(err)
+      })
+   return { status: refreshTokenStatus, result: tokenResult }
 }
 
 router.post("/api/signup", async (req, res) => {
@@ -84,11 +104,11 @@ router.post("/api/signup", async (req, res) => {
       .sqlPromise(query)
       .then(async (result) => {
          const user_id = result[0].insertId
-         const token = await postNewToken(user_id, email)
+         const tokenRequest = await postNewToken(user_id, email)
          res.json({
             status: "success",
             message: "Register User Successful",
-            token: token,
+            tokenRequest: tokenRequest,
          })
       })
       .catch((err) => {
@@ -96,6 +116,7 @@ router.post("/api/signup", async (req, res) => {
          console.log(err)
       })
 })
+
 
 router.post("/api/login", async (req, res) => {
    const { email, AESpassword } = req.query
@@ -111,34 +132,44 @@ router.post("/api/login", async (req, res) => {
    utilities
       .sqlPromise(query)
       .then(async (result) => {
-         let status = "",
-            message = "",
-            token = ""
-
+         let status = "fail",
+            message = "Login Failed",
+            tokenRequest = ""
          //Check whether SQL return empty list
          //Which means Username doesn't exist
          if (result[0]) {
+            dbUser_id = result[0]["user_id"]
+            dbEmail = result[0]["email"]
             dbPassword = result[0]["password"]
             //Check Password
             if (decrypt(AESpassword) === decrypt(dbPassword)) {
                status = "success"
                message = "Login Successful"
-               //TODO refresh and return token
+               tokenRequest = await refreshToken(dbUser_id, dbEmail)
             } else {
-               status = "fail"
-               message = "Login Failed, password Incorrect"
+               message += ", password Incorrect"
             }
          } else {
-            console.log("Invalid Email")
-            status = "fail"
-            message = "Login Failed, email doesn't exist"
+            message += ", email doesn't exist"
          }
-         res.json({ status: status, message: message, token: token })
+         res.json({
+            status: status,
+            message: message,
+            tokenRequest: tokenRequest,
+         })
       })
       .catch((err) => {
          console.log(err)
-         res.json({ status: "fail", message: "Login Failed, database error", err })
+         res.json({
+            status: "fail",
+            message: "Login Failed, database error",
+            err,
+         })
       })
+})
+
+router.get("/api/test", async (req, res) => {
+   //    res.send({ tokenRequest: await refreshToken() })
 })
 
 module.exports = router
