@@ -13,7 +13,7 @@ console.clear()
 
 app.use(express.static(path.join(__dirname, "build")))
 
-//SQL
+//SQL Connect
 const mySqlConnection = require("./SQL-config")
 mySqlConnection.connect((err) => {
    if (err) {
@@ -23,6 +23,11 @@ mySqlConnection.connect((err) => {
    } else console.log("Database Connected!")
 })
 
+
+const authRoutes = require("./routes/auth.js")
+app.use(authRoutes)
+
+
 app.get("/api/search/prophets", (req, res) => {
    //Default query values
    let orderBySort = "ORDER BY score DESC"
@@ -31,14 +36,6 @@ app.get("/api/search/prophets", (req, res) => {
    let whereProphetID = ""
 
    const { sort, scoreAbove, keyWord, prophetID } = req.query
-
-   //Print queryStrings for Debugging
-   let queryString = {}
-   queryString.sort = sort
-   queryString.scoreAbove = scoreAbove
-   queryString.keyWord = keyWord
-   queryString.prophetID = prophetID
-   // console.table(queryString)
 
    if (sort) {
       querySort = sort
@@ -54,7 +51,7 @@ app.get("/api/search/prophets", (req, res) => {
    }
 
    var query = `SELECT * FROM prophets ${whereScoreAbove} ${whereKeyWord} ${whereProphetID} ${orderBySort}`
-   console.log("Prophets query: \n" + query)
+   // console.log(`Prophets query: \n ${query} \n`)
    utilities
       .sqlPromise(query)
       .then((result) => {
@@ -69,7 +66,7 @@ app.get("/api/search/prophets", (req, res) => {
 app.get("/api/search/predictions", (req, res) => {
    //Default query values
    let orderBySort = "ORDER BY score DESC"
-   let whereScoreAbove = "WHERE score > 0"
+   let whereScoreAbove = "WHERE score >= 0"
    let whereKeyWord = ""
    let whereProphetID = ""
    let wherePredictionID = ""
@@ -77,14 +74,13 @@ app.get("/api/search/predictions", (req, res) => {
    const { sort, scoreAbove, keyWord, prophetID, predictionID } = req.query
 
    //Print queryStrings for Debugging
-   let queryString = {}
-   queryString.sort = sort
-   queryString.scoreAbove = scoreAbove
-   queryString.keyWord = keyWord
-   queryString.prophetID = prophetID
-   queryString.predictionID = predictionID
-
-   console.table(queryString)
+   // let queryString = {}
+   // queryString.sort = sort
+   // queryString.scoreAbove = scoreAbove
+   // queryString.keyWord = keyWord
+   // queryString.prophetID = prophetID
+   // queryString.predictionID = predictionID
+   // console.table(queryString)
 
    if (sort) {
       querySort = sort
@@ -104,7 +100,7 @@ app.get("/api/search/predictions", (req, res) => {
    }
 
    var query = `SELECT * FROM predictions ${whereScoreAbove} ${whereKeyWord} ${whereProphetID} ${wherePredictionID} ${orderBySort}`
-   console.log("Predictions query: \n" + query)
+   // console.log("Predictions query: \n" + query)
    utilities
       .sqlPromise(query)
       .then((result) => {
@@ -116,14 +112,8 @@ app.get("/api/search/predictions", (req, res) => {
       })
 })
 
-app.get("/api/test", (req, res) => {
-   var query = "SELECT * FROM test"
-   utilities
-      .sqlPromise(query)
-      .then((result) => {
-         res.send({ status: "success", message: "haha", result })
-      })
-      .catch((err) => console.log(err))
+app.get("/api/test", async (req, res) => {
+   
 })
 
 app.get("/*", (req, res) => {
