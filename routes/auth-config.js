@@ -5,5 +5,8 @@ module.exports = {
 }
 
 //encrypt和decrypt以及generate以禁用
+//Heroku 已push
+//已简单测试Auth
 //TODO
-//继续在Heroku测试Auth
+//Auth问题不大，再玩一会看看会不会出Bug，之后就琢磨更改encrypt decrypt
+//Bug Logout的时候，cookie没清空
