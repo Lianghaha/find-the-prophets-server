@@ -10,25 +10,25 @@ const decrypt = (Base64Data) => {
    // let deBase64Data = CryptoJS.enc.Base64.parse(Base64Data).toString(
    //    CryptoJS.enc.Utf8
    // )
-   let decryptedData = CryptoJS.AES.decrypt(
-      Base64Data,
-      process.env.SECRET
-   ).toString(CryptoJS.enc.Utf8)
+   // let decryptedData = CryptoJS.AES.decrypt(
+   //    Base64Data,
+   //    process.env.SECRET
+   // ).toString(CryptoJS.enc.Utf8)
    // let deJSONData = JSON.parse(decryptedData)
-   return decryptedData
+   return Base64Data
 }
 
 const generateToken = (dataObject) => {
    let JSONData = JSON.stringify(dataObject)
-   let encryptedData = CryptoJS.AES.encrypt(
-      JSONData,
-      process.env.SECRET
-   ).toString()
-   //Base64 processing is required to clear "malformed utf-8 data" error
-   let Base64Data = CryptoJS.enc.Base64.stringify(
-      CryptoJS.enc.Utf8.parse(encryptedData)
-   )
-   return Base64Data
+   // let encryptedData = CryptoJS.AES.encrypt(
+   //    JSONData,
+   //    process.env.SECRET
+   // ).toString()
+   // //Base64 processing is required to clear "malformed utf-8 data" error
+   // let Base64Data = CryptoJS.enc.Base64.stringify(
+   //    CryptoJS.enc.Utf8.parse(encryptedData)
+   // )
+   return JSONData
 }
 
 //Used in SignUp, create new row in "tokens" table
