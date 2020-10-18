@@ -3,6 +3,7 @@ const router = express.Router()
 const utils = require("../utils")
 const CryptoJS = require("crypto-js")
 const { token_expire_time } = require("./auth-config.js")
+const { getCurrentTime } = require("../utils")
 
 //Can decrypt both String and Object
 const decrypt = (Base64Data) => {
@@ -19,7 +20,7 @@ const decrypt = (Base64Data) => {
 }
 
 const generateToken = (dataObject) => {
-   let JSONData = JSON.stringify(dataObject)
+   // let JSONData = JSON.stringify(dataObject)
    // let encryptedData = CryptoJS.AES.encrypt(
    //    JSONData,
    //    process.env.SECRET
@@ -28,7 +29,7 @@ const generateToken = (dataObject) => {
    // let Base64Data = CryptoJS.enc.Base64.stringify(
    //    CryptoJS.enc.Utf8.parse(encryptedData)
    // )
-   return JSONData
+   return getCurrentTime().timeNumeric
 }
 
 //Used in SignUp, create new row in "tokens" table
