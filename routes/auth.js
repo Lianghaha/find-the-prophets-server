@@ -126,11 +126,12 @@ router.post("/api/signup", async (req, res) => {
 router.post("/api/login", async (req, res) => {
    const { email, AESpassword } = req.body
 
-   // let queryString = {}
-   // queryString.email = email
+   let queryString = {}
+   queryString.email = email
+   queryString.AESpassword = AESpassword
    // queryString.password = decrypt(AESpassword)
-   // console.log("\n================================ Login Debugging ")
-   // console.table(queryString)
+   console.log("\n================================ Login Debugging ")
+   console.table(queryString)
 
    let status = 1,
       message = "Login Failed",
