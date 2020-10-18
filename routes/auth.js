@@ -101,6 +101,14 @@ router.post("/api/signup", async (req, res) => {
    console.clear()
    const { email, username, AESpassword } = req.body
 
+   let queryString = {}
+   queryString.email = email
+   queryString.username = username
+   queryString.AESpassword = AESpassword
+   queryString.password = decrypt(AESpassword)
+   console.log("\n================================ SignUp Debugging ")
+   console.table(queryString)
+
    //Check User Info Validity
    // if (!checkEmail(email)) return res.json({ status: 2, message: "Invalid Email" })
    // if (!checkUsername(username)) return res.json({ status: 3, message: "Invalid Username" })
