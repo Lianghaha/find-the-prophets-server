@@ -1,7 +1,7 @@
 const express = require("express")
 const app = express()
 const port = process.env.PORT || 3001
-const utilities = require("./utilities")
+const utils = require("./utils")
 const path = require("path")
 
 //Secrets
@@ -12,6 +12,8 @@ require("dotenv").config()
 console.clear()
 
 app.use(express.static(path.join(__dirname, "build")))
+app.use(express.urlencoded({ extended: true }))
+app.use(express.json())
 
 //SQL Connect
 const mySqlConnection = require("./SQL-config")
@@ -23,12 +25,18 @@ mySqlConnection.connect((err) => {
    } else console.log("Database Connected!")
 })
 
-
 const authRoutes = require("./routes/auth.js")
 app.use(authRoutes)
 
+// app.get("/api/test", (req, res) => {
+//    const test = req.headers
+//    utils.refreshToken(req)
+//    res.json({test})
+// })
 
 app.get("/api/search/prophets", (req, res) => {
+   utils.refreshToken(req)
+
    //Default query values
    let orderBySort = "ORDER BY score DESC"
    let whereScoreAbove = "WHERE score > 0"
@@ -38,7 +46,7 @@ app.get("/api/search/prophets", (req, res) => {
    const { sort, scoreAbove, keyWord, prophetID } = req.query
 
    if (sort) {
-      querySort = sort
+      orderBySort = `ORDER BY score ${sort}`
    }
    if (scoreAbove) {
       whereScoreAbove = `WHERE score > ${scoreAbove}`
@@ -50,20 +58,21 @@ app.get("/api/search/prophets", (req, res) => {
       whereProphetID = `AND prophet_id = ${prophetID}`
    }
 
-   var query = `SELECT * FROM prophets ${whereScoreAbove} ${whereKeyWord} ${whereProphetID} ${orderBySort}`
-   // console.log(`Prophets query: \n ${query} \n`)
-   utilities
+   const query = `SELECT * FROM prophets ${whereScoreAbove} ${whereKeyWord} ${whereProphetID} ${orderBySort}`
+   utils
       .sqlPromise(query)
       .then((result) => {
-         res.json({ status: "success", result })
+         res.json({ status: 0, result })
       })
       .catch((err) => {
-         res.json({ status: "fail", err })
+         res.json({ status: 1, err })
          console.log(err)
       })
 })
 
 app.get("/api/search/predictions", (req, res) => {
+   utils.refreshToken(req)
+
    //Default query values
    let orderBySort = "ORDER BY score DESC"
    let whereScoreAbove = "WHERE score >= 0"
@@ -83,7 +92,7 @@ app.get("/api/search/predictions", (req, res) => {
    // console.table(queryString)
 
    if (sort) {
-      querySort = sort
+      orderBySort = `ORDER BY score ${sort}`
    }
    if (scoreAbove) {
       whereScoreAbove = `WHERE score > ${scoreAbove}`
@@ -99,15 +108,14 @@ app.get("/api/search/predictions", (req, res) => {
       wherePredictionID = `AND prediction_id = ${predictionID}`
    }
 
-   var query = `SELECT * FROM predictions ${whereScoreAbove} ${whereKeyWord} ${whereProphetID} ${wherePredictionID} ${orderBySort}`
-   // console.log("Predictions query: \n" + query)
-   utilities
+   const query = `SELECT * FROM predictions ${whereScoreAbove} ${whereKeyWord} ${whereProphetID} ${wherePredictionID} ${orderBySort}`
+   utils
       .sqlPromise(query)
       .then((result) => {
-         res.json({ status: "success", result })
+         res.json({ status: 0, result })
       })
       .catch((err) => {
-         res.json({ status: "fail", err })
+         res.json({ status: 1, err })
          console.log(err)
       })
 })

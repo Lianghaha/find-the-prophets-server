@@ -1,7 +1,8 @@
 const express = require("express")
 const router = express.Router()
-const utilities = require("../utilities")
+const utils = require("../utils")
 const CryptoJS = require("crypto-js")
+const { token_expire_time } = require("./auth-config.js")
 
 //Can decrypt both String and Object
 const decrypt = (Base64Data) => {
@@ -30,111 +31,116 @@ const generateToken = (dataObject) => {
    return Base64Data
 }
 
-const getCurrentTime = () => {
-   let d = new Date()
-   let timeNumeric = d.getTime()
-   let timeReadable = `${d.getFullYear()}/${
-      d.getMonth() + 1
-   }/${d.getDate()} @ ${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}`
-   return { timeNumeric, timeReadable }
-}
-
-const postNewToken = async (user_id, email) => {
-   const { timeNumeric, timeReadable } = getCurrentTime()
+//Used in SignUp, create new row in "tokens" table
+const insertNewToken = async (user_id, email) => {
+   const { timeNumeric, timeReadable } = utils.getCurrentTime()
    const token = generateToken([user_id, email, timeNumeric])
 
-   var query = `INSERT INTO tokens (user_id, identity, token, last_request, last_request_readable) VALUES ("${user_id}", "${email}", "${token}", "${timeNumeric}", "${timeReadable}");`
-   //    console.log(`Post New Token: Query: \n ${query} \n`)
+   let status = 1,
+      tokenResult = "",
+      message = ""
 
-   let postTokenStatus = "fail"
-   let tokenResult = "Post New Token Failed"
-
-   await utilities
+   const query = `INSERT INTO tokens (user_id, identity, token, last_request, last_request_readable) VALUES ("${user_id}", "${email}", "${token}", "${timeNumeric}", "${timeReadable}");`
+   await utils
       .sqlPromise(query)
       .then(() => {
-         postTokenStatus = "success"
+         status = 0
          tokenResult = token
       })
       .catch((err) => {
          console.log(err)
+         message = err
       })
-   return { status: postTokenStatus, result: tokenResult }
+   return { status: status, token: tokenResult, message: message }
 }
 
-const refreshToken = async (user_id, email) => {
-   const { timeNumeric, timeReadable } = getCurrentTime()
+//Used in Login, update existing row in "tokens" table with new token and last_request time
+const updateToken = async (user_id, email) => {
+   const { timeNumeric, timeReadable } = utils.getCurrentTime()
    const token = generateToken([user_id, email, timeNumeric])
 
-   var query = `UPDATE tokens SET token = "${token}", last_request = "${timeNumeric}", last_request_readable = "${timeReadable}" WHERE user_id = ${user_id};`
-   console.log(query)
-
    //Default tokenRequest info
-   let refreshTokenStatus = "fail"
-   let tokenResult = "Refresh Token Failed"
+   let status = 1,
+      tokenResult = "",
+      message = ""
 
-   await utilities
+   const query = `UPDATE tokens SET token = "${token}", last_request = "${timeNumeric}", last_request_readable = "${timeReadable}" WHERE user_id = ${user_id};`
+   await utils
       .sqlPromise(query)
       .then((result) => {
-         if (result.affectedRows) {
-            console.log("Refresh Token Succeed")
-            refreshTokenStatus = "success"
+         if (result.affectedRows === 1) {
+            console.log("Login Update Token Successful")
+            status = 0
             tokenResult = token
          } else {
-            tokenResult += ": 0 row or more than 1 row changed"
+            message = "0 or more than 1 token changed"
          }
       })
       .catch((err) => {
          console.log(err)
+         message = err
       })
-   return { status: refreshTokenStatus, result: tokenResult }
+   return { status: status, token: tokenResult, message: message }
 }
 
-router.post("/api/signup", async (req, res) => {
-   const { email, username, AESpassword } = req.query
+//SignUp Api Helper
+const checkEmail = (input) => {
+   const regex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/
+   return regex.test(input)
+}
 
-   let queryString = {}
-   queryString.email = email
-   queryString.username = username
-   queryString.password = decrypt(AESpassword)
-   console.log("\n================================ Register Debugging ")
-   console.table(queryString)
-   var query = `INSERT INTO users (identity, username, password) VALUES ("${email}", "${username}", "${AESpassword}");SELECT LAST_INSERT_ID();`
-   // console.log(`Prophets query: \n ${query} \n`)
-   utilities
+//SignUp Api Helper
+const checkUsername = (input) => {
+   let regex = /^[a-zA-Z0-9]+$/
+   return regex.test(input) && input.length >= 6
+}
+
+//Status code 0: Sucess, 1:
+router.post("/api/signup", async (req, res) => {
+   console.clear()
+   const { email, username, AESpassword } = req.body
+
+   //Check User Info Validity
+   // if (!checkEmail(email)) return res.json({ status: 2, message: "Invalid Email" })
+   // if (!checkUsername(username)) return res.json({ status: 3, message: "Invalid Username" })
+   // if (decrypt(AESpassword).length < 6) return res.json({ status: 4, message: "Invalid Password" })
+
+   const query = `INSERT INTO users (identity, username, password) VALUES ("${email}", "${username}", "${AESpassword}");SELECT LAST_INSERT_ID();`
+   utils
       .sqlPromise(query)
       .then(async (result) => {
          const user_id = result[0].insertId
-         const tokenRequest = await postNewToken(user_id, email)
+         const tokenRequest = await insertNewToken(user_id, email)
          res.json({
-            status: "success",
+            status: 0,
             message: "Register User Successful",
             tokenRequest: tokenRequest,
          })
       })
       .catch((err) => {
-         res.json({ status: "fail", message: "Register User Failed", err })
+         res.json({ status: 1, message: err.sqlMessage })
          console.log(err)
       })
 })
 
-
 router.post("/api/login", async (req, res) => {
-   const { email, AESpassword } = req.query
+   const { email, AESpassword } = req.body
 
-   let queryString = {}
-   queryString.email = email
-   queryString.password = decrypt(AESpassword)
-   console.log("\n================================ Login Debugging ")
-   console.table(queryString)
+   // let queryString = {}
+   // queryString.email = email
+   // queryString.password = decrypt(AESpassword)
+   // console.log("\n================================ Login Debugging ")
+   // console.table(queryString)
 
-   var query = `SELECT * FROM users WHERE identity = "${email}";`
-   // console.log(`Prophets query: \n ${query} \n`)
-   utilities
+   let status = 1,
+      message = "Login Failed",
+      tokenRequest = "",
+      userInfo = ""
+
+   const query = `SELECT * FROM users WHERE identity = "${email}";`
+   utils
       .sqlPromise(query)
       .then(async (result) => {
-         let status = "fail",
-            message = "Login Failed",
-            tokenRequest = ""
          //Check whether SQL return empty list
          //Which means Username doesn't exist
          if (result[0]) {
@@ -143,33 +149,67 @@ router.post("/api/login", async (req, res) => {
             dbPassword = result[0]["password"]
             //Check Password
             if (decrypt(AESpassword) === decrypt(dbPassword)) {
-               status = "success"
+               status = 0
                message = "Login Successful"
-               tokenRequest = await refreshToken(dbUser_id, dbEmail)
+               tokenRequest = await updateToken(dbUser_id, dbEmail)
+               userInfo = {
+                  identity: result[0].identity,
+                  username: result[0].username,
+               }
             } else {
-               message += ", password Incorrect"
+               message = "Password Incorrect"
             }
          } else {
-            message += ", email doesn't exist"
+            message = "Email doesn't exist"
          }
          res.json({
             status: status,
             message: message,
             tokenRequest: tokenRequest,
+            userInfo: userInfo,
          })
       })
       .catch((err) => {
          console.log(err)
          res.json({
-            status: "fail",
+            status: 1,
             message: "Login Failed, database error",
             err,
          })
       })
 })
 
-router.get("/api/test", async (req, res) => {
-   //    res.send({ tokenRequest: await refreshToken() })
+//Client actively request to check token
+router.post("/api/check_token", async (req, res) => {
+   const { identity, token } = req.body
+   let status = 1,
+      message = "Unknown Error"
+
+   const query = `SELECT token, last_request FROM tokens WHERE identity = "${identity}";`
+   utils
+      .sqlPromise(query)
+      .then(async (response) => {
+         if (response.length === 0) {
+            message = "Cannot find token with given identity"
+         } else {
+            db_token = response[0].token
+            db_last_request = response[0].last_request
+            //Check whether tokens match
+            if (token === db_token) {
+               //Check whether token is expired
+               const currentTime = utils.getCurrentTime().timeNumeric
+               if (currentTime - db_last_request < token_expire_time) {
+                  status = 0
+                  message = "Token Valid"
+               } else message = "Token Expired"
+            } else message = "Tokens don't match"
+         }
+         res.json({ status: status, message: message })
+      })
+      .catch((err) => {
+         res.json({ status: 1, message: err.sqlMessage })
+         console.log(err)
+      })
 })
 
 module.exports = router
