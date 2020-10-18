@@ -173,7 +173,7 @@ router.post("/api/login", async (req, res) => {
          console.log(err)
          res.json({
             status: 1,
-            message: "Login Failed, database error",
+            message: "Login Failed, database error" + err,
             err,
          })
       })
