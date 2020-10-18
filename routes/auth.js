@@ -29,7 +29,7 @@ const generateToken = (dataObject) => {
    // let Base64Data = CryptoJS.enc.Base64.stringify(
    //    CryptoJS.enc.Utf8.parse(encryptedData)
    // )
-   return getCurrentTime().timeNumeric
+   return getCurrentTime().timeNumeric + "=="
 }
 
 //Used in SignUp, create new row in "tokens" table
