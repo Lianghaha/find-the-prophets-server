@@ -7,15 +7,15 @@ const { token_expire_time } = require("./auth-config.js")
 //Can decrypt both String and Object
 const decrypt = (Base64Data) => {
    //Base64 processing is required to clear "malformed utf-8 data" error
-   let deBase64Data = CryptoJS.enc.Base64.parse(Base64Data).toString(
-      CryptoJS.enc.Utf8
-   )
+   // let deBase64Data = CryptoJS.enc.Base64.parse(Base64Data).toString(
+   //    CryptoJS.enc.Utf8
+   // )
    let decryptedData = CryptoJS.AES.decrypt(
-      deBase64Data,
+      Base64Data,
       process.env.SECRET
    ).toString(CryptoJS.enc.Utf8)
-   let deJSONData = JSON.parse(decryptedData)
-   return deJSONData
+   // let deJSONData = JSON.parse(decryptedData)
+   return decryptedData
 }
 
 const generateToken = (dataObject) => {
@@ -129,7 +129,7 @@ router.post("/api/login", async (req, res) => {
    let queryString = {}
    queryString.email = email
    queryString.AESpassword = AESpassword
-   // queryString.password = decrypt(AESpassword)
+   queryString.password = decrypt(AESpassword)
    console.log("\n================================ Login Debugging ")
    console.table(queryString)
 
