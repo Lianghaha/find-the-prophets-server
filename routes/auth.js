@@ -1,41 +1,22 @@
 const express = require("express")
 const router = express.Router()
 const utils = require("../utils")
-const CryptoJS = require("crypto-js")
+// const CryptoJS = require("crypto-js")
 const { token_expire_time } = require("./auth-config.js")
 const { getCurrentTime } = require("../utils")
+const SHA256 = require("crypto-js/sha256")
 
-//Can decrypt both String and Object
-const decrypt = (Base64Data) => {
-   //Base64 processing is required to clear "malformed utf-8 data" error
-   // let deBase64Data = CryptoJS.enc.Base64.parse(Base64Data).toString(
-   //    CryptoJS.enc.Utf8
-   // )
-   // let decryptedData = CryptoJS.AES.decrypt(
-   //    Base64Data,
-   //    process.env.SECRET
-   // ).toString(CryptoJS.enc.Utf8)
-   // let deJSONData = JSON.parse(decryptedData)
-   return Base64Data
-}
-
-const generateToken = (dataObject) => {
-   // let JSONData = JSON.stringify(dataObject)
-   // let encryptedData = CryptoJS.AES.encrypt(
-   //    JSONData,
-   //    process.env.SECRET
-   // ).toString()
-   // //Base64 processing is required to clear "malformed utf-8 data" error
-   // let Base64Data = CryptoJS.enc.Base64.stringify(
-   //    CryptoJS.enc.Utf8.parse(encryptedData)
-   // )
-   return getCurrentTime().timeNumeric + "=="
+const generateToken = (user_id, email, timeNumeric) => {
+   const result = SHA256(user_id + email + timeNumeric)
+   console.log("Token Generated: " + result)
+   return result.toString()
 }
 
 //Used in SignUp, create new row in "tokens" table
 const insertNewToken = async (user_id, email) => {
    const { timeNumeric, timeReadable } = utils.getCurrentTime()
-   const token = generateToken([user_id, email, timeNumeric])
+   const token = generateToken(user_id, email, timeNumeric)
+   console.log("insertNewToken: " + token)
 
    let status = 1,
       tokenResult = "",
@@ -58,7 +39,7 @@ const insertNewToken = async (user_id, email) => {
 //Used in Login, update existing row in "tokens" table with new token and last_request time
 const updateToken = async (user_id, email) => {
    const { timeNumeric, timeReadable } = utils.getCurrentTime()
-   const token = generateToken([user_id, email, timeNumeric])
+   const token = generateToken(user_id, email, timeNumeric)
 
    //Default tokenRequest info
    let status = 1,
@@ -99,22 +80,20 @@ const checkUsername = (input) => {
 //Status code 0: Sucess, 1:
 router.post("/api/signup", async (req, res) => {
    console.clear()
-   const { email, username, AESpassword } = req.body
+   const { email, username, encPassword } = req.body
 
    let queryString = {}
    queryString.email = email
    queryString.username = username
-   queryString.AESpassword = AESpassword
-   queryString.password = decrypt(AESpassword)
+   queryString.encPassword = encPassword
    console.log("\n================================ SignUp Debugging ")
    console.table(queryString)
 
    //Check User Info Validity
    // if (!checkEmail(email)) return res.json({ status: 2, message: "Invalid Email" })
    // if (!checkUsername(username)) return res.json({ status: 3, message: "Invalid Username" })
-   // if (decrypt(AESpassword).length < 6) return res.json({ status: 4, message: "Invalid Password" })
 
-   const query = `INSERT INTO users (identity, username, password) VALUES ("${email}", "${username}", "${AESpassword}");SELECT LAST_INSERT_ID();`
+   const query = `INSERT INTO users (identity, username, password) VALUES ("${email}", "${username}", "${encPassword}");SELECT LAST_INSERT_ID();`
    utils
       .sqlPromise(query)
       .then(async (result) => {
@@ -133,12 +112,11 @@ router.post("/api/signup", async (req, res) => {
 })
 
 router.post("/api/login", async (req, res) => {
-   const { email, AESpassword } = req.body
+   const { email, encPassword } = req.body
 
    let queryString = {}
    queryString.email = email
-   queryString.AESpassword = AESpassword
-   queryString.password = decrypt(AESpassword)
+   queryString.encPassword = encPassword
    console.log("\n================================ Login Debugging ")
    console.table(queryString)
 
@@ -158,7 +136,7 @@ router.post("/api/login", async (req, res) => {
             dbEmail = result[0]["email"]
             dbPassword = result[0]["password"]
             //Check Password
-            if (decrypt(AESpassword) === decrypt(dbPassword)) {
+            if (encPassword === dbPassword) {
                status = 0
                message = "Login Successful"
                tokenRequest = await updateToken(dbUser_id, dbEmail)

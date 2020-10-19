@@ -1,6 +1,5 @@
 const mySqlConnection = require("./SQL-config")
 const { token_expire_time } = require("./routes/auth-config")
-const util = require("util")
 
 const utilities = {
    checkAuthenticated(req, res, next) {
@@ -46,7 +45,6 @@ const utilities = {
             var cur = str[i].split("=")
             result[cur[0].trim()] = cur[1]
          }
-         result.token += "=="
          return result
       }
       return false
