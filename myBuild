@@ -5,3 +5,4 @@ npm run build
 mv build ../TheProphets-Server
 cd ../TheProphets-Server
 git add .
+git status

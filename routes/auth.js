@@ -4,6 +4,15 @@ const utils = require("../utils")
 // const CryptoJS = require("crypto-js")
 const { token_expire_time } = require("./auth-config.js")
 const SHA256 = require("crypto-js/sha256")
+const CryptoJS = require("crypto-js")
+
+
+const decrypt = (str) => {
+   console.log("decrypt str: " + str)
+   console.log("decrypt REACT_APP_SECRET: " + process.env.REACT_APP_SECRET)
+   const decrypt = CryptoJS.AES.decrypt(str, process.env.REACT_APP_SECRET)
+   return decrypt.toString(CryptoJS.enc.Utf8)
+}
 
 const generateToken = (user_id, email, timeNumeric) => {
    const result = SHA256(user_id + email + timeNumeric)
@@ -134,8 +143,13 @@ router.post("/api/login", async (req, res) => {
             dbUser_id = result[0]["user_id"]
             dbEmail = result[0]["email"]
             dbPassword = result[0]["password"]
+            console.log("encPassword: " + encPassword)
+            console.log("dbPassword: " + dbPassword)
+            console.log("decrypt encPassword: " + decrypt(encPassword))
+            console.log("decrypt dbPassword: " + decrypt(dbPassword))
+
             //Check Password
-            if (encPassword === dbPassword) {
+            if (decrypt(encPassword) === decrypt(dbPassword)) {
                status = 0
                message = "Login Successful"
                tokenRequest = await updateToken(dbUser_id, dbEmail)
