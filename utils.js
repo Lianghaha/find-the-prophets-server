@@ -64,8 +64,8 @@ const utilities = {
                } else {
                   db_token = response[0].token
                   db_last_request = response[0].last_request
-                  console.log("token: " + token)
-                  console.log("db_token: " + db_token)
+                  // console.log("token: " + token)
+                  // console.log("db_token: " + db_token)
                   //Check whether tokens match
                   if (token === db_token) {
                      //Check whether token is expired

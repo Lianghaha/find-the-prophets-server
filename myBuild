@@ -4,3 +4,4 @@ cd ../TheProphets
 npm run build
 mv build ../TheProphets-Server
 cd ../TheProphets-Server
+git add .

@@ -3,12 +3,11 @@ const router = express.Router()
 const utils = require("../utils")
 // const CryptoJS = require("crypto-js")
 const { token_expire_time } = require("./auth-config.js")
-const { getCurrentTime } = require("../utils")
 const SHA256 = require("crypto-js/sha256")
 
 const generateToken = (user_id, email, timeNumeric) => {
    const result = SHA256(user_id + email + timeNumeric)
-   console.log("Token Generated: " + result)
+   // console.log("Token Generated: " + result)
    return result.toString()
 }
 
@@ -16,7 +15,7 @@ const generateToken = (user_id, email, timeNumeric) => {
 const insertNewToken = async (user_id, email) => {
    const { timeNumeric, timeReadable } = utils.getCurrentTime()
    const token = generateToken(user_id, email, timeNumeric)
-   console.log("insertNewToken: " + token)
+   // console.log("insertNewToken: " + token)
 
    let status = 1,
       tokenResult = "",

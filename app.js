@@ -27,6 +27,8 @@ mySqlConnection.connect((err) => {
 
 const authRoutes = require("./routes/auth.js")
 app.use(authRoutes)
+const commentReviewRoutes = require("./routes/comment_review")
+app.use(commentReviewRoutes)
 
 // app.get("/api/test", (req, res) => {
 //    const test = req.headers
