@@ -6,10 +6,9 @@ const { token_expire_time } = require("./auth-config.js")
 const SHA256 = require("crypto-js/sha256")
 const CryptoJS = require("crypto-js")
 
-
 const decrypt = (str) => {
-   console.log("decrypt str: " + str)
-   console.log("decrypt REACT_APP_SECRET: " + process.env.REACT_APP_SECRET)
+   // console.log("decrypt str: " + str)
+   // console.log("decrypt REACT_APP_SECRET: " + process.env.REACT_APP_SECRET)
    const decrypt = CryptoJS.AES.decrypt(str, process.env.REACT_APP_SECRET)
    return decrypt.toString(CryptoJS.enc.Utf8)
 }
@@ -94,7 +93,7 @@ router.post("/api/signup", async (req, res) => {
    queryString.email = email
    queryString.username = username
    queryString.encPassword = encPassword
-   console.log("\n================================ SignUp Debugging ")
+   console.log("\n===============SignUp Debugging=================")
    console.table(queryString)
 
    //Check User Info Validity
@@ -125,7 +124,7 @@ router.post("/api/login", async (req, res) => {
    let queryString = {}
    queryString.email = email
    queryString.encPassword = encPassword
-   console.log("\n================================ Login Debugging ")
+   console.log("\n===============Login Debugging=================")
    console.table(queryString)
 
    let status = 1,
@@ -143,10 +142,10 @@ router.post("/api/login", async (req, res) => {
             dbUser_id = result[0]["user_id"]
             dbEmail = result[0]["email"]
             dbPassword = result[0]["password"]
-            console.log("encPassword: " + encPassword)
-            console.log("dbPassword: " + dbPassword)
-            console.log("decrypt encPassword: " + decrypt(encPassword))
-            console.log("decrypt dbPassword: " + decrypt(dbPassword))
+            // console.log("encPassword: " + encPassword)
+            // console.log("dbPassword: " + dbPassword)
+            // console.log("decrypt encPassword: " + decrypt(encPassword))
+            // console.log("decrypt dbPassword: " + decrypt(dbPassword))
 
             //Check Password
             if (decrypt(encPassword) === decrypt(dbPassword)) {
@@ -182,35 +181,36 @@ router.post("/api/login", async (req, res) => {
 
 //Client actively request to check token
 router.post("/api/check_token", async (req, res) => {
-   const { identity, token } = req.body
-   let status = 1,
-      message = "Unknown Error"
+   res.json(await utils.refreshToken(req))
+   // const { identity, token } = req.body
+   // let status = 1,
+   //    message = "Unknown Error"
 
-   const query = `SELECT token, last_request FROM tokens WHERE identity = "${identity}";`
-   utils
-      .sqlPromise(query)
-      .then(async (response) => {
-         if (response.length === 0) {
-            message = "Cannot find token with given identity"
-         } else {
-            db_token = response[0].token
-            db_last_request = response[0].last_request
-            //Check whether tokens match
-            if (token === db_token) {
-               //Check whether token is expired
-               const currentTime = utils.getCurrentTime().timeNumeric
-               if (currentTime - db_last_request < token_expire_time) {
-                  status = 0
-                  message = "Token Valid"
-               } else message = "Token Expired"
-            } else message = "Tokens don't match"
-         }
-         res.json({ status: status, message: message })
-      })
-      .catch((err) => {
-         res.json({ status: 1, message: err.sqlMessage })
-         console.log(err)
-      })
+   // const query = `SELECT token, last_request FROM tokens WHERE identity = "${identity}";`
+   // utils
+   //    .sqlPromise(query)
+   //    .then(async (response) => {
+   //       if (response.length === 0) {
+   //          message = "Cannot find token with given identity"
+   //       } else {
+   //          db_token = response[0].token
+   //          db_last_request = response[0].last_request
+   //          //Check whether tokens match
+   //          if (token === db_token) {
+   //             //Check whether token is expired
+   //             const currentTime = utils.getCurrentTime().timeNumeric
+   //             if (currentTime - db_last_request < token_expire_time) {
+   //                status = 0
+   //                message = "Token Valid"
+   //             } else message = "Token Expired"
+   //          } else message = "Tokens don't match"
+   //       }
+   //       res.json({ status: status, message: message })
+   //    })
+   //    .catch((err) => {
+   //       res.json({ status: 1, message: err.sqlMessage })
+   //       console.log(err)
+   //    })
 })
 
 module.exports = router

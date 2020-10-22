@@ -2,21 +2,6 @@ const mySqlConnection = require("./SQL-config")
 const { token_expire_time } = require("./routes/auth-config")
 
 const utilities = {
-   checkAuthenticated(req, res, next) {
-      if (req.isAuthenticated()) {
-         return next()
-      }
-      req.flash("error", "Please Login First!")
-      res.redirect("/login")
-   },
-
-   checkNotAuthenticated(req, res, next) {
-      if (!req.isAuthenticated()) {
-         return next()
-      }
-      req.flash("error", "Already Logged in")
-      res.redirect("/camps")
-   },
    sqlPromise(query) {
       return new Promise((resolve, reject) => {
          mySqlConnection.query(query, function (err, result) {
@@ -49,15 +34,39 @@ const utilities = {
       }
       return false
    },
+   async getUserById(user_id) {
+      const query = `SELECT * From users WHERE user_id = ${user_id}`
+      let result = []
+      await this.sqlPromise(query)
+         .then((response) => {
+            result = response
+         })
+         .catch((err) => {
+            result = err
+         })
+      return result
+   },
+   async getUserByIdentity(identity) {
+      const query = `SELECT * From users WHERE identity = "${identity}"`
+      let result = []
+      await this.sqlPromise(query)
+         .then((response) => {
+            result = response
+         })
+         .catch((err) => {
+            result = err
+         })
+      return result
+   },
    //Sever passively update last_request time of an existing token if the token is not expired
-   refreshToken(req) {
+   async refreshToken(req) {
       if (req.headers.cookie) {
          const { identity, token } = this.parseCookie(req.headers.cookie)
          let status = 1,
             message = "Unknown Error"
 
-         var query = `SELECT token, last_request FROM tokens WHERE identity = "${identity}";`
-         this.sqlPromise(query)
+         const query = `SELECT token, last_request FROM tokens WHERE identity = "${identity}";`
+         await this.sqlPromise(query)
             .then(async (response) => {
                if (response.length === 0) {
                   message = "Cannot find token with given identity"
@@ -85,11 +94,13 @@ const utilities = {
                      } else message = "Token Expired"
                   } else message = "Tokens Don't Match"
                }
-               console.log({ status: status, message: message })
             })
             .catch((err) => {
-               console.log({ status: 1, message: err.sqlMessage })
+               message = err.sqlMessage
             })
+         console.log("============== refreshToken ==============")
+         console.log({ status: status, message: message })
+         return { status: status, message: message }
       }
    },
 }
