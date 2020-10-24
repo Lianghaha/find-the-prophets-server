@@ -60,6 +60,7 @@ const utilities = {
    },
    //Sever passively update last_request time of an existing token if the token is not expired
    async refreshToken(req) {
+      console.log("============== refreshToken ==============")
       if (req.headers.cookie) {
          const { identity, token } = this.parseCookie(req.headers.cookie)
          let status = 1,
@@ -98,10 +99,9 @@ const utilities = {
             .catch((err) => {
                message = err.sqlMessage
             })
-         console.log("============== refreshToken ==============")
          console.log({ status: status, message: message })
          return { status: status, message: message }
-      }
+      } else console.log("Token Not Found")
    },
 }
 module.exports = utilities

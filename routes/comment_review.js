@@ -10,7 +10,9 @@ const getRelativeDate = (inputDate) => {
    var minute = 60,
       hour = minute * 60,
       day = hour * 24,
-      week = day * 7
+      week = day * 7,
+      month = week * 4,
+      year = month * 12
 
    var fuzzy
 
@@ -28,20 +30,35 @@ const getRelativeDate = (inputDate) => {
       fuzzy = Math.floor(delta / hour) + " hours ago"
    } else if (delta < day * 2) {
       fuzzy = "yesterday"
+   } else if (delta < week) {
+      fuzzy = Math.floor(delta / day) + " days ago"
+   } else if (Math.floor(delta / week) == 1) {
+      fuzzy = "1 week ago"
+   } else if (delta < month) {
+      fuzzy = Math.floor(delta / week) + " weeks ago"
+   } else if (Math.floor(delta / month) == 1) {
+      fuzzy = "1 month ago"
+   } else if (delta < year) {
+      fuzzy = Math.floor(delta / month) + " months ago"
+   } else if (Math.floor(delta / year) == 1) {
+      fuzzy = "1 year ago"
+   } else {
+      fuzzy = Math.floor(delta / year) + " years ago"
    }
    return fuzzy
 }
 
 router.post("/api/review", async (req, res) => {
    utils.refreshToken(req)
-   const { accuracy, difficulty, content, overall_score } = req.body
+   const { accuracy, difficulty, content, overall_score, prediction_id } = req.body
    const { identity } = utils.parseCookie(req.headers.cookie)
-   const posted_date = utils.getCurrentTime().timeReadable
+   const posted_date = utils.getCurrentTime().timeNumeric
+   const posted_date_readable = utils.getCurrentTime().timeReadable
 
    let status = 1,
       message = "Post Review Failed"
 
-   const query = `INSERT INTO reviews (identity, accuracy, difficulty, content, posted_date, overall_score) VALUES ("${identity}", ${accuracy}, ${difficulty}, "${content}", "${posted_date}", ${overall_score});`
+   const query = `INSERT INTO reviews (author_identity, accuracy, difficulty, content, posted_date, posted_date_readable, overall_score, prediction_id) VALUES ("${identity}", ${accuracy}, ${difficulty}, "${content}", "${posted_date}", "${posted_date_readable}", ${overall_score}, ${prediction_id});`
    utils
       .sqlPromise(query)
       .then(async (response) => {
@@ -59,25 +76,40 @@ router.post("/api/review", async (req, res) => {
 
 router.get("/api/review", async (req, res) => {
    utils.refreshToken(req)
-   const { accuracy, difficulty, content, overall_score } = req.body
-   const { identity } = utils.parseCookie(req.headers.cookie)
-   const posted_date = utils.getCurrentTime().timeReadable
+   const { predictionID } = req.query
 
    let status = 1,
-      message = "Post Review Failed"
+      message = "Get Reviews Failed, "
 
-   const query = `INSERT INTO reviews (identity, accuracy, difficulty, content, posted_date, overall_score) VALUES ("${identity}", ${accuracy}, ${difficulty}, "${content}", "${posted_date}", ${overall_score});`
+   const query = `SELECT * FROM reviews WHERE prediction_id = ${predictionID} ORDER BY posted_date DESC;`
+   console.log(query)
    utils
       .sqlPromise(query)
-      .then(async (response) => {
-         status = 0
-         message = "Post Reivew Successful"
-         res.json({ status: status, message: message, dbResponse: response })
-         //TODO
-         //Update prediction and prophet score
+      .then(async (result) => {
+         if (result.length > 0) {
+            for (const review of result) {
+               review["relative_date"] = getRelativeDate(review.posted_date)
+               review["author"] = await utils.getUserByIdentity(
+                  review.author_identity
+               )
+            }
+            status = 0
+            message = "Get Reviews Successful"
+            res.json({ status: status, message: message, result })
+         } else {
+            res.json({
+               status: status,
+               message: (message += "No Review Found"),
+               result,
+            })
+         }
       })
       .catch((err) => {
-         res.json({ status: 1, message: err.sqlMessage })
+         res.json({
+            status: status,
+            message: (message += "Database Error"),
+            error: err,
+         })
          console.log(err)
       })
 })
@@ -128,7 +160,7 @@ router.get("/api/comment", async (req, res) => {
             message = "Get Comments Successful"
             res.json({ status: status, message: message, result })
          } else {
-            message += "No Comment Found"
+            res.json({ status: status, message: message += "No Comment Found", result })
          }
       })
       .catch((err) => {
