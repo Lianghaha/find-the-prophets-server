@@ -61,6 +61,7 @@ const utilities = {
    //Sever passively update last_request time of an existing token if the token is not expired
    async refreshToken(req) {
       console.log("============== refreshToken ==============")
+      console.log(req.headers.cookie)
       if (req.headers.cookie) {
          const { identity, token } = this.parseCookie(req.headers.cookie)
          let status = 1,

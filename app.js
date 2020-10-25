@@ -77,12 +77,19 @@ app.get("/api/search/predictions", (req, res) => {
 
    //Default query values
    let orderBySort = "ORDER BY score DESC"
-   let whereScoreAbove = "WHERE score >= 0"
+   let whereScoreAbove = "WHERE score >= -1"
    let whereKeyWord = ""
    let whereProphetID = ""
    let wherePredictionID = ""
 
-   const { sort, scoreAbove, keyWord, prophetID, predictionID } = req.query
+   const {
+      sort,
+      scoreAbove,
+      keyWord,
+      prophetID,
+      predictionID,
+      page,
+   } = req.query
 
    //Print queryStrings for Debugging
    // let queryString = {}
@@ -91,6 +98,7 @@ app.get("/api/search/predictions", (req, res) => {
    // queryString.keyWord = keyWord
    // queryString.prophetID = prophetID
    // queryString.predictionID = predictionID
+   // queryString.page = page
    // console.table(queryString)
 
    if (sort) {
@@ -111,10 +119,22 @@ app.get("/api/search/predictions", (req, res) => {
    }
 
    const query = `SELECT * FROM predictions ${whereScoreAbove} ${whereKeyWord} ${whereProphetID} ${wherePredictionID} ${orderBySort}`
+   let showLoadMoreButton = true, result = [], numPerPgae = 2 
    utils
       .sqlPromise(query)
-      .then((result) => {
-         res.json({ status: 0, result })
+      .then((response) => {
+         if (page) {
+            const startIndex = (page - 1) * numPerPgae
+            const endIndex = page * numPerPgae
+            result = response.slice(startIndex, endIndex)
+            if (endIndex >= response.length) {
+               showLoadMoreButton = false
+            }
+         }
+         else result = response 
+         // console.log(response.length)
+         // console.log(result.length)
+         res.json({ status: 0, result: result, showLoadMoreButton})
       })
       .catch((err) => {
          res.json({ status: 1, err })

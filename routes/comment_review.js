@@ -82,7 +82,6 @@ router.get("/api/review", async (req, res) => {
       message = "Get Reviews Failed, "
 
    const query = `SELECT * FROM reviews WHERE prediction_id = ${predictionID} ORDER BY posted_date DESC;`
-   console.log(query)
    utils
       .sqlPromise(query)
       .then(async (result) => {
