@@ -89,6 +89,7 @@ app.get("/api/search/predictions", (req, res) => {
       prophetID,
       predictionID,
       page,
+      numPerPage,
    } = req.query
 
    //Print queryStrings for Debugging
@@ -99,6 +100,7 @@ app.get("/api/search/predictions", (req, res) => {
    // queryString.prophetID = prophetID
    // queryString.predictionID = predictionID
    // queryString.page = page
+   // queryString.numPerPage = numPerPage
    // console.table(queryString)
 
    if (sort) {
@@ -119,22 +121,22 @@ app.get("/api/search/predictions", (req, res) => {
    }
 
    const query = `SELECT * FROM predictions ${whereScoreAbove} ${whereKeyWord} ${whereProphetID} ${wherePredictionID} ${orderBySort}`
-   let showLoadMoreButton = true, result = [], numPerPgae = 2 
+   let showLoadMoreButton = true,
+      result = []
    utils
       .sqlPromise(query)
       .then((response) => {
          if (page) {
-            const startIndex = (page - 1) * numPerPgae
-            const endIndex = page * numPerPgae
+            const startIndex = (page - 1) * numPerPage
+            const endIndex = page * numPerPage
             result = response.slice(startIndex, endIndex)
             if (endIndex >= response.length) {
                showLoadMoreButton = false
             }
-         }
-         else result = response 
+         } else result = response
          // console.log(response.length)
          // console.log(result.length)
-         res.json({ status: 0, result: result, showLoadMoreButton})
+         res.json({ status: 0, result: result, showLoadMoreButton })
       })
       .catch((err) => {
          res.json({ status: 1, err })

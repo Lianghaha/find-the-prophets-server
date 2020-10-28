@@ -47,26 +47,28 @@ const utilities = {
       return result
    },
    async getUserByIdentity(identity) {
+      // console.log("============= getUserByIdentity ==============")
       const query = `SELECT * From users WHERE identity = "${identity}"`
+      // console.log(query)
       let result = []
       await this.sqlPromise(query)
          .then((response) => {
             result = response
+            // console.log(response)
          })
          .catch((err) => {
             result = err
          })
+      // console.log(result)
       return result
    },
    //Sever passively update last_request time of an existing token if the token is not expired
    async refreshToken(req) {
       console.log("============== refreshToken ==============")
-      console.log(req.headers.cookie)
-      if (req.headers.cookie) {
-         const { identity, token } = this.parseCookie(req.headers.cookie)
+      const { identity, token } = this.parseCookie(req.headers.cookie)
+      if (identity) {
          let status = 1,
             message = "Unknown Error"
-
          const query = `SELECT token, last_request FROM tokens WHERE identity = "${identity}";`
          await this.sqlPromise(query)
             .then(async (response) => {
@@ -102,7 +104,7 @@ const utilities = {
             })
          console.log({ status: status, message: message })
          return { status: status, message: message }
-      } else console.log("Token Not Found")
+      } else console.log("Identity Not Found")
    },
 }
 module.exports = utilities

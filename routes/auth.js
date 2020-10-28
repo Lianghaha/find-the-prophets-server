@@ -2,9 +2,12 @@ const express = require("express")
 const router = express.Router()
 const utils = require("../utils")
 // const CryptoJS = require("crypto-js")
-const { token_expire_time } = require("./auth-config.js")
 const SHA256 = require("crypto-js/sha256")
 const CryptoJS = require("crypto-js")
+const { OAuth2Client } = require("google-auth-library")
+const client = new OAuth2Client(
+   "120159497383-33l93k1jfajaoa1t1sm39qtnhmeoq9u5.apps.googleusercontent.com"
+)
 
 const decrypt = (str) => {
    // console.log("decrypt str: " + str)
@@ -13,23 +16,23 @@ const decrypt = (str) => {
    return decrypt.toString(CryptoJS.enc.Utf8)
 }
 
-const generateToken = (user_id, email, timeNumeric) => {
-   const result = SHA256(user_id + email + timeNumeric)
+const generateToken = (identity, timeNumeric) => {
+   const result = SHA256(identity + timeNumeric)
    // console.log("Token Generated: " + result)
    return result.toString()
 }
 
 //Used in SignUp, create new row in "tokens" table
-const insertNewToken = async (user_id, email) => {
+const insertNewToken = async (identity) => {
    const { timeNumeric, timeReadable } = utils.getCurrentTime()
-   const token = generateToken(user_id, email, timeNumeric)
+   const token = generateToken(identity, timeNumeric)
    // console.log("insertNewToken: " + token)
 
    let status = 1,
       tokenResult = "",
       message = ""
 
-   const query = `INSERT INTO tokens (user_id, identity, token, last_request, last_request_readable) VALUES ("${user_id}", "${email}", "${token}", "${timeNumeric}", "${timeReadable}");`
+   const query = `INSERT INTO tokens (identity, token, last_request, last_request_readable) VALUES ("${identity}", "${token}", "${timeNumeric}", "${timeReadable}");`
    await utils
       .sqlPromise(query)
       .then(() => {
@@ -44,16 +47,16 @@ const insertNewToken = async (user_id, email) => {
 }
 
 //Used in Login, update existing row in "tokens" table with new token and last_request time
-const updateToken = async (user_id, email) => {
+const updateToken = async (identity) => {
    const { timeNumeric, timeReadable } = utils.getCurrentTime()
-   const token = generateToken(user_id, email, timeNumeric)
+   const token = generateToken(identity, timeNumeric)
 
    //Default tokenRequest info
    let status = 1,
       tokenResult = "",
       message = ""
 
-   const query = `UPDATE tokens SET token = "${token}", last_request = "${timeNumeric}", last_request_readable = "${timeReadable}" WHERE user_id = ${user_id};`
+   const query = `UPDATE tokens SET token = "${token}", last_request = "${timeNumeric}", last_request_readable = "${timeReadable}" WHERE identity = ${identity};`
    await utils
       .sqlPromise(query)
       .then((result) => {
@@ -84,7 +87,7 @@ const checkUsername = (input) => {
    return regex.test(input) && input.length >= 6
 }
 
-//Status code 0: Sucess, 1:
+//Only used when normal SignUp not GoogleSignUp
 router.post("/api/signup", async (req, res) => {
    console.clear()
    const { email, username, encPassword } = req.body
@@ -104,8 +107,7 @@ router.post("/api/signup", async (req, res) => {
    utils
       .sqlPromise(query)
       .then(async (result) => {
-         const user_id = result[0].insertId
-         const tokenRequest = await insertNewToken(user_id, email)
+         const tokenRequest = await insertNewToken(email)
          res.json({
             status: 0,
             message: "Register User Successful",
@@ -118,6 +120,7 @@ router.post("/api/signup", async (req, res) => {
       })
 })
 
+//Only used when normal Login not GoogleLogin
 router.post("/api/login", async (req, res) => {
    const { email, encPassword } = req.body
 
@@ -139,8 +142,8 @@ router.post("/api/login", async (req, res) => {
          //Check whether SQL return empty list
          //Which means Username doesn't exist
          if (result[0]) {
-            dbUser_id = result[0]["user_id"]
-            dbEmail = result[0]["email"]
+            console.log(result[0])
+            dbEmail = result[0]["identity"]
             dbPassword = result[0]["password"]
             // console.log("encPassword: " + encPassword)
             // console.log("dbPassword: " + dbPassword)
@@ -151,10 +154,11 @@ router.post("/api/login", async (req, res) => {
             if (decrypt(encPassword) === decrypt(dbPassword)) {
                status = 0
                message = "Login Successful"
-               tokenRequest = await updateToken(dbUser_id, dbEmail)
+               tokenRequest = await updateToken(dbEmail)
                userInfo = {
                   identity: result[0].identity,
                   username: result[0].username,
+                  profile_img: result[0].profile_img
                }
             } else {
                message = "Password Incorrect"
@@ -211,6 +215,67 @@ router.post("/api/check_token", async (req, res) => {
    //       res.json({ status: 1, message: err.sqlMessage })
    //       console.log(err)
    //    })
+})
+
+async function verify(tokenID) {
+   const ticket = await client.verifyIdToken({
+      idToken: tokenID,
+      audience:
+         "120159497383-33l93k1jfajaoa1t1sm39qtnhmeoq9u5.apps.googleusercontent.com",
+   })
+   const payload = ticket.getPayload()
+   const userInfo = {
+      googleAcID: payload["sub"],
+      username: payload["name"] + " - Google User",
+      profile_img: payload["picture"],
+   }
+   return userInfo
+}
+
+router.post("/api/google_login", async (req, res) => {
+   const { tokenID } = req.body
+   let status = 1,
+      userInfo = [],
+      message = "Unknown Error",
+      tokenRequest = ""
+
+   await verify(tokenID)
+      .then((response) => {
+         userInfo = response
+         message = "Google TokenID verification Successful"
+      })
+      .catch((err) => {
+         message = "Google TokenID verification Failed"
+         console.log(err)
+      })
+
+   // Try register
+   if (userInfo.length !== 0) {
+      const query = `INSERT INTO users (identity, username, profile_img) VALUES ("${
+         userInfo.googleAcID
+      }", "${userInfo.username}", "${
+         userInfo.profile_img
+      }");SELECT LAST_INSERT_ID();`
+      await utils
+         .sqlPromise(query)
+         .then(async (response) => {
+            tokenRequest = await insertNewToken(userInfo.googleAcID)
+            if (tokenRequest.status === 0) {
+               message = "User Sign Up Successful"
+               status = 0
+            } else message = "User Login Failed, Could Not Insert New Token"
+         })
+         .catch(async (err) => {
+            //User already exist in database
+            message = "Sign Up New User Failed, Try Login"
+            tokenRequest = await updateToken(userInfo.googleAcID)
+            if (tokenRequest.status === 0) {
+               message = "User Login Successful"
+               status = 0
+            } else message = "User Login Failed, Could Not Refresh Token"
+         })
+   }
+   res.json({ status, userInfo, message, tokenRequest })
 })
 
 module.exports = router
