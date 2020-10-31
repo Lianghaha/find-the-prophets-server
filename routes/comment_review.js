@@ -48,9 +48,41 @@ const getRelativeDate = (inputDate) => {
    return fuzzy
 }
 
+const updatePredictions = async (prediction_id) => {
+   const query = `UPDATE predictions SET score = ROUND((SELECT AVG(overall_score) FROM reviews WHERE prediction_id = ${prediction_id}), 1) WHERE prediction_id = ${prediction_id};UPDATE predictions SET num_review = (SELECT COUNT(*) FROM reviews WHERE prediction_id = ${prediction_id}) WHERE prediction_id = ${prediction_id};SELECT prophet_id FROM predictions WHERE prediction_id = ${prediction_id}`
+
+   let result = false
+   await utils
+      .sqlPromise(query)
+      .then((response) => {
+         result = response[2][0]["prophet_id"]
+         // console.log("updatePredictions prophet_id: " + result)
+      })
+      .catch((err) => {
+         console.log(err)
+      })
+   return result
+}
+const updateProphets = async (prophet_id) => {
+   const query = `UPDATE prophets SET score = ROUND((SELECT AVG(score) FROM predictions WHERE prophet_id = ${prophet_id}), 1) WHERE prophet_id = ${prophet_id};UPDATE prophets SET num_prediction = (SELECT COUNT(*) FROM predictions WHERE prophet_id = ${prophet_id}) WHERE prophet_id = ${prophet_id};`
+   console.log(query)
+   await utils
+      .sqlPromise(query)
+      .then((response) => {})
+      .catch((err) => {
+         console.log(err)
+      })
+}
+
 router.post("/api/review", async (req, res) => {
    utils.refreshToken(req)
-   const { accuracy, difficulty, content, overall_score, prediction_id } = req.body
+   const {
+      accuracy,
+      difficulty,
+      content,
+      overall_score,
+      prediction_id,
+   } = req.body
    const { identity } = utils.parseCookie(req.headers.cookie)
    const posted_date = utils.getCurrentTime().timeNumeric
    const posted_date_readable = utils.getCurrentTime().timeReadable
@@ -58,20 +90,31 @@ router.post("/api/review", async (req, res) => {
    let status = 1,
       message = "Post Review Failed"
 
-   const query = `INSERT INTO reviews (author_identity, accuracy, difficulty, content, posted_date, posted_date_readable, overall_score, prediction_id) VALUES ("${identity}", ${accuracy}, ${difficulty}, "${content}", "${posted_date}", "${posted_date_readable}", ${overall_score}, ${prediction_id});`
-   utils
+   let predictionAvgScore = false,
+      num_review = false
+   const query = `INSERT INTO reviews (author_identity, accuracy, difficulty, content, posted_date, posted_date_readable, overall_score, prediction_id) VALUES ("${identity}", ${accuracy}, ${difficulty}, "${content}", "${posted_date}", "${posted_date_readable}", ${overall_score}, ${prediction_id});SELECT AVG(overall_score) as avg_score, COUNT(*) as num_review FROM reviews WHERE prediction_id = ${prediction_id}`
+   await utils
       .sqlPromise(query)
       .then(async (response) => {
+         predictionAvgScore = Math.round(response[1][0]["avg_score"] * 10) / 10
+         num_review = response[1][0]["num_review"]
          status = 0
          message = "Post Reivew Successful"
          res.json({ status: status, message: message, dbResponse: response })
-         //TODO
-         //Update prediction and prophet score
       })
       .catch((err) => {
          res.json({ status: 1, message: err.sqlMessage })
          console.log(err)
       })
+   if (status === 0) {
+      const prophet_id = await updatePredictions(prediction_id)
+      console.log("avg_score: " + predictionAvgScore)
+      console.log("num_review: " + num_review)
+      console.log("prophet_id: " + prophet_id)
+      if (prophet_id) {
+         updateProphets(prophet_id)
+      }
+   }
 })
 
 router.get("/api/review", async (req, res) => {
@@ -159,7 +202,11 @@ router.get("/api/comment", async (req, res) => {
             message = "Get Comments Successful"
             res.json({ status: status, message: message, result })
          } else {
-            res.json({ status: status, message: message += "No Comment Found", result })
+            res.json({
+               status: status,
+               message: (message += "No Comment Found"),
+               result,
+            })
          }
       })
       .catch((err) => {

@@ -66,6 +66,7 @@ const utilities = {
    async refreshToken(req) {
       console.log("============== refreshToken ==============")
       const { identity, token } = this.parseCookie(req.headers.cookie)
+      // console.log(identity)
       if (identity) {
          let status = 1,
             message = "Unknown Error"
