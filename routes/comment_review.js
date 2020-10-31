@@ -74,6 +74,13 @@ const updateProphets = async (prophet_id) => {
       })
 }
 
+router.get("/api/refreshALLps", async (req, res) => {
+   for (var i = 0; i < 10; i++) {
+      await updatePredictions(i)
+      updateProphets(i)
+   }
+})
+
 router.post("/api/review", async (req, res) => {
    utils.refreshToken(req)
    const {

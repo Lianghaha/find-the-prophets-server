@@ -41,7 +41,7 @@ app.get("/api/search/prophets", (req, res) => {
 
    //Default query values
    let orderBySort = "ORDER BY score DESC"
-   let whereScoreAbove = "WHERE score > 0"
+   let whereScoreAbove = "WHERE score > -1"
    let whereKeyWord = ""
    let whereProphetID = ""
 
@@ -74,7 +74,6 @@ app.get("/api/search/prophets", (req, res) => {
 
 app.get("/api/search/predictions", (req, res) => {
    utils.refreshToken(req)
-
    //Default query values
    let orderBySort = "ORDER BY score DESC"
    let whereScoreAbove = "WHERE score >= -1"
