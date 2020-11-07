@@ -24,7 +24,6 @@ const utilities = {
    parseCookie(input) {
       if (input) {
          const str = input.split(";")
-         // console.log(str)
          var result = {}
          for (var i = 0; i < str.length; i++) {
             var cur = str[i].split("=")

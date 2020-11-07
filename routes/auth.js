@@ -1,7 +1,6 @@
 const express = require("express")
 const router = express.Router()
 const utils = require("../utils")
-// const CryptoJS = require("crypto-js")
 const SHA256 = require("crypto-js/sha256")
 const CryptoJS = require("crypto-js")
 const { OAuth2Client } = require("google-auth-library")
@@ -10,15 +9,12 @@ const client = new OAuth2Client(
 )
 
 const decrypt = (str) => {
-   // console.log("decrypt str: " + str)
-   // console.log("decrypt REACT_APP_SECRET: " + process.env.REACT_APP_SECRET)
    const decrypt = CryptoJS.AES.decrypt(str, process.env.REACT_APP_SECRET)
    return decrypt.toString(CryptoJS.enc.Utf8)
 }
 
 const generateToken = (identity, timeNumeric) => {
    const result = SHA256(identity + timeNumeric)
-   // console.log("Token Generated: " + result)
    return result.toString()
 }
 
@@ -145,11 +141,6 @@ router.post("/api/login", async (req, res) => {
             console.log(result[0])
             dbEmail = result[0]["identity"]
             dbPassword = result[0]["password"]
-            // console.log("encPassword: " + encPassword)
-            // console.log("dbPassword: " + dbPassword)
-            // console.log("decrypt encPassword: " + decrypt(encPassword))
-            // console.log("decrypt dbPassword: " + decrypt(dbPassword))
-
             //Check Password
             if (decrypt(encPassword) === decrypt(dbPassword)) {
                status = 0
@@ -158,7 +149,7 @@ router.post("/api/login", async (req, res) => {
                userInfo = {
                   identity: result[0].identity,
                   username: result[0].username,
-                  profile_img: result[0].profile_img
+                  profile_img: result[0].profile_img,
                }
             } else {
                message = "Password Incorrect"
@@ -186,35 +177,6 @@ router.post("/api/login", async (req, res) => {
 //Client actively request to check token
 router.post("/api/check_token", async (req, res) => {
    res.json(await utils.refreshToken(req))
-   // const { identity, token } = req.body
-   // let status = 1,
-   //    message = "Unknown Error"
-
-   // const query = `SELECT token, last_request FROM tokens WHERE identity = "${identity}";`
-   // utils
-   //    .sqlPromise(query)
-   //    .then(async (response) => {
-   //       if (response.length === 0) {
-   //          message = "Cannot find token with given identity"
-   //       } else {
-   //          db_token = response[0].token
-   //          db_last_request = response[0].last_request
-   //          //Check whether tokens match
-   //          if (token === db_token) {
-   //             //Check whether token is expired
-   //             const currentTime = utils.getCurrentTime().timeNumeric
-   //             if (currentTime - db_last_request < token_expire_time) {
-   //                status = 0
-   //                message = "Token Valid"
-   //             } else message = "Token Expired"
-   //          } else message = "Tokens don't match"
-   //       }
-   //       res.json({ status: status, message: message })
-   //    })
-   //    .catch((err) => {
-   //       res.json({ status: 1, message: err.sqlMessage })
-   //       console.log(err)
-   //    })
 })
 
 async function verify(tokenID) {
@@ -251,11 +213,7 @@ router.post("/api/google_login", async (req, res) => {
 
    // Try register
    if (userInfo.length !== 0) {
-      const query = `INSERT INTO users (identity, username, profile_img) VALUES ("${
-         userInfo.googleAcID
-      }", "${userInfo.username}", "${
-         userInfo.profile_img
-      }");SELECT LAST_INSERT_ID();`
+      const query = `INSERT INTO users (identity, username, profile_img) VALUES ("${userInfo.googleAcID}", "${userInfo.username}", "${userInfo.profile_img}");SELECT LAST_INSERT_ID();`
       await utils
          .sqlPromise(query)
          .then(async (response) => {

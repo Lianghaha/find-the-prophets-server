@@ -91,17 +91,6 @@ app.get("/api/search/predictions", (req, res) => {
       numPerPage,
    } = req.query
 
-   //Print queryStrings for Debugging
-   // let queryString = {}
-   // queryString.sort = sort
-   // queryString.scoreAbove = scoreAbove
-   // queryString.keyWord = keyWord
-   // queryString.prophetID = prophetID
-   // queryString.predictionID = predictionID
-   // queryString.page = page
-   // queryString.numPerPage = numPerPage
-   // console.table(queryString)
-
    if (sort) {
       orderBySort = `ORDER BY score ${sort}`
    }
