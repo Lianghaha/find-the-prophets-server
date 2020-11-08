@@ -64,7 +64,7 @@ const updatePredictions = async (prediction_id) => {
    return result
 }
 const updateProphets = async (prophet_id) => {
-   const query = `UPDATE prophets SET score = ROUND((SELECT AVG(score) FROM predictions WHERE prophet_id = ${prophet_id}), 1) WHERE prophet_id = ${prophet_id};UPDATE prophets SET num_prediction = (SELECT COUNT(*) FROM predictions WHERE prophet_id = ${prophet_id}) WHERE prophet_id = ${prophet_id};`
+   const query = `UPDATE prophets SET score = ROUND((SELECT AVG(score) FROM predictions WHERE prophet_id = ${prophet_id} AND score > 0), 1) WHERE prophet_id = ${prophet_id};UPDATE prophets SET num_prediction = (SELECT COUNT(*) FROM predictions WHERE prophet_id = ${prophet_id}) WHERE prophet_id = ${prophet_id};`
    console.log(query)
    await utils
       .sqlPromise(query)
