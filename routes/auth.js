@@ -4,9 +4,7 @@ const utils = require("../utils")
 const SHA256 = require("crypto-js/sha256")
 const CryptoJS = require("crypto-js")
 const { OAuth2Client } = require("google-auth-library")
-const client = new OAuth2Client(
-   "120159497383-33l93k1jfajaoa1t1sm39qtnhmeoq9u5.apps.googleusercontent.com"
-)
+const client = new OAuth2Client(process.env.REACT_APP_CLIENTID)
 
 const decrypt = (str) => {
    const decrypt = CryptoJS.AES.decrypt(str, process.env.REACT_APP_SECRET)
@@ -182,8 +180,7 @@ router.post("/api/check_token", async (req, res) => {
 async function verify(tokenID) {
    const ticket = await client.verifyIdToken({
       idToken: tokenID,
-      audience:
-         "120159497383-33l93k1jfajaoa1t1sm39qtnhmeoq9u5.apps.googleusercontent.com",
+      audience: process.env.REACT_APP_CLIENTID,
    })
    const payload = ticket.getPayload()
    const userInfo = {
