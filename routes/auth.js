@@ -86,16 +86,9 @@ router.post("/api/signup", async (req, res) => {
    console.clear()
    const { email, username, encPassword } = req.body
 
-   let queryString = {}
-   queryString.email = email
-   queryString.username = username
-   queryString.encPassword = encPassword
-   console.log("\n===============SignUp Debugging=================")
-   console.table(queryString)
-
-   //Check User Info Validity
-   // if (!checkEmail(email)) return res.json({ status: 2, message: "Invalid Email" })
-   // if (!checkUsername(username)) return res.json({ status: 3, message: "Invalid Username" })
+   // Check User Info Validity
+   if (!checkEmail(email)) return res.json({ status: 2, message: "Invalid Email" })
+   if (!checkUsername(username)) return res.json({ status: 3, message: "Invalid Username" })
 
    const query = `INSERT INTO users (identity, username, password) VALUES ("${email}", "${username}", "${encPassword}");SELECT LAST_INSERT_ID();`
    utils
