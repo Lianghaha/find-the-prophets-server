@@ -114,7 +114,7 @@ router.post("/api/login", async (req, res) => {
    let queryString = {}
    queryString.email = email
    queryString.encPassword = encPassword
-   console.log("\n===============Login Debugging=================")
+   // console.log("\n===============Login Debugging=================")
    console.table(queryString)
 
    let status = 1,
@@ -129,7 +129,7 @@ router.post("/api/login", async (req, res) => {
          //Check whether SQL return empty list
          //Which means Username doesn't exist
          if (result[0]) {
-            console.log(result[0])
+            // console.log(result[0])
             dbEmail = result[0]["identity"]
             dbPassword = result[0]["password"]
             //Check Password
