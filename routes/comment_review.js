@@ -85,7 +85,16 @@ router.get("/api/refreshALLps", async (req, res) => {
 })
 
 router.post("/api/review", async (req, res) => {
-   utils.refreshToken(req)
+   let status = 1,
+      message = "Post Review Failed"
+
+   const checkIdentity = await utils.refreshToken(req)
+   if (checkIdentity.status === 1) {
+      message += ", Identity Not Found"
+      res.json({ status, message })
+      return
+   }
+
    const {
       accuracy,
       difficulty,
@@ -98,17 +107,12 @@ router.post("/api/review", async (req, res) => {
    const posted_date = utils.getCurrentTime().timeNumeric
    const posted_date_readable = utils.getCurrentTime().timeReadable
 
-   let status = 1,
-      message = "Post Review Failed"
-
-   let predictionAvgScore = false,
-      num_review = false
    const query = `INSERT INTO reviews (author_identity, accuracy, difficulty, content, posted_date, posted_date_readable, overall_score, prediction_id) VALUES ("${identity}", ${accuracy}, ${difficulty}, '${clearedContent}', "${posted_date}", "${posted_date_readable}", ${overall_score}, ${prediction_id});SELECT AVG(overall_score) as avg_score, COUNT(*) as num_review FROM reviews WHERE prediction_id = ${prediction_id}`
    await utils
       .sqlPromise(query)
       .then(async (response) => {
-         predictionAvgScore = Math.round(response[1][0]["avg_score"] * 10) / 10
-         num_review = response[1][0]["num_review"]
+         // predictionAvgScore = Math.round(response[1][0]["avg_score"] * 10) / 10
+         // num_review = response[1][0]["num_review"]
          status = 0
          message = "Post Reivew Successful"
          res.json({ status: status, message: message, dbResponse: response })
@@ -165,15 +169,22 @@ router.get("/api/review", async (req, res) => {
 })
 
 router.post("/api/comment", async (req, res) => {
-   utils.refreshToken(req)
+   let status = 1,
+      message = "Post Review Failed"
+   
+   const checkIdentity = await utils.refreshToken(req)
+   if(checkIdentity.status === 1) {
+      message += ", Identity Not Found"
+      res.json({ status, message })
+      return
+   } 
+
    const { content, prophet_id } = req.body
    let clearedContent = clearString(content)
    const { identity } = utils.parseCookie(req.headers.cookie)
    const posted_date = utils.getCurrentTime().timeNumeric
    const posted_date_readable = utils.getCurrentTime().timeReadable
-
-   let status = 1,
-      message = "Post Review Failed"
+   
 
    const query = `INSERT INTO comments (author_identity, content, posted_date, posted_date_readable, prophet_id) VALUES ("${identity}", '${clearedContent}', "${posted_date}", "${posted_date_readable}", ${prophet_id});`
    utils
@@ -181,7 +192,7 @@ router.post("/api/comment", async (req, res) => {
       .then(async (response) => {
          status = 0
          message = "Post Coment Successful"
-         res.json({ status: status, message: message, dbResponse: response })
+         res.json({ status, message, dbResponse: response })
       })
       .catch((err) => {
          res.json({ status: 1, message: err.sqlMessage })

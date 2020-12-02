@@ -65,10 +65,10 @@ const utilities = {
    async refreshToken(req) {
       console.log("============== refreshToken ==============")
       const { identity, token } = this.parseCookie(req.headers.cookie)
-      // console.log(identity)
+      let status = 1,
+         message = "Unknown Error"
+
       if (identity) {
-         let status = 1,
-            message = "Unknown Error"
          const query = `SELECT token, last_request FROM tokens WHERE identity = "${identity}";`
          await this.sqlPromise(query)
             .then(async (response) => {
@@ -102,9 +102,12 @@ const utilities = {
             .catch((err) => {
                message = err.sqlMessage
             })
-         console.log({ status: status, message: message })
-         return { status: status, message: message }
-      } else console.log("Identity Not Found")
+         console.log({ status, message })
+      } else {
+         console.log("Identity Not Found")
+         message = "Identity Not Found"
+      }
+      return { status, message }
    },
 }
 module.exports = utilities
