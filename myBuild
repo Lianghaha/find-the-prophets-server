@@ -1,8 +1,8 @@
 #!/bin/bash
 rm -r build
-cd ../TheProphets
+cd ../find-the-prophets
 npm run build
-mv build ../TheProphets-Server
-cd ../TheProphets-Server
+mv build ../find-the-prophets-server
+cd ../find-the-prophets-server
 git add .
 git status
